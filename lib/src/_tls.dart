@@ -5,7 +5,7 @@ class _TLSConnecta extends ConnectaSocket {
 
   @override
   Future<io.Socket> createSocket({
-    void Function(List<int> p1)? onData,
+    void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
     required int timeout,
     required bool continueEmittingOnBadCert,
@@ -23,7 +23,21 @@ class _TLSConnecta extends ConnectaSocket {
       onBadCertificate: (cert) => continueEmittingOnBadCert,
     );
 
+    _handleSocket(onData: onData, onError: onError);
+
     return ioSocket!;
+  }
+
+  void _handleSocket({
+    void Function(List<int> data)? onData,
+    Function(dynamic error, dynamic trace)? onError,
+  }) {
+    subscription = ioSocket!.listen(
+      onData,
+      onError: onError,
+      onDone: () => ioSocket!.destroy(),
+      cancelOnError: true,
+    );
   }
 
   static io.SecurityContext buildCertificate({
@@ -61,24 +75,6 @@ class _TLSConnecta extends ConnectaSocket {
     required bool continueEmittingOnBadCert,
     io.Socket? socket,
     io.SecurityContext? context,
-  }) async {
-    try {
-      if (ioSocket == null) {
-        throw const NoSocketAttached();
-      }
-      subscription.pause();
-
-      final securedSocket = await io.SecureSocket.secure(
-        socket ?? ioSocket!,
-        context: context,
-        onBadCertificate: (certificate) => continueEmittingOnBadCert,
-      );
-
-      subscription.resume();
-
-      return securedSocket;
-    } catch (error) {
-      throw SecureSocketException(error);
-    }
-  }
+  }) async =>
+      null;
 }
