@@ -50,13 +50,16 @@ class Connecta {
     if (toolkit.startTLS) {
       throw const NoSocketAttached();
     }
+
     if (!isSecure) {
-      final securedSocket = socket.upgradeConnection(
+      final securedSocket = await socket.upgradeConnection(
         timeout: toolkit.timeout,
         continueEmittingOnBadCert: toolkit.continueEmittingOnBadCert,
+        socket: socket.ioSocket,
         context: toolkit.context,
       );
 
+      isSecure = true;
       return securedSocket;
     }
 
