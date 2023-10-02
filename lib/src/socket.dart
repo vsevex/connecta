@@ -21,6 +21,7 @@ abstract class ConnectaSocket {
   Future<io.Socket?> upgradeConnection({
     required int timeout,
     required bool continueEmittingOnBadCert,
+    io.Socket? socket,
     io.SecurityContext? context,
   });
   void write(dynamic data);
