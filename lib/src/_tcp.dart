@@ -3,7 +3,7 @@ part of 'connecta.dart';
 class _TCPConnecta extends ConnectaSocket {
   @override
   Future<io.Socket> createSocket({
-    void Function(List<int>)? onData,
+    void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
     required int timeout,
     required bool continueEmittingOnBadCert,
@@ -25,7 +25,7 @@ class _TCPConnecta extends ConnectaSocket {
   }
 
   void _handleSocket({
-    void Function(List<int>)? onData,
+    void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
   }) {
     subscription = ioSocket!.listen(
@@ -53,7 +53,27 @@ class _TCPConnecta extends ConnectaSocket {
   Future<io.Socket?> upgradeConnection({
     required int timeout,
     required bool continueEmittingOnBadCert,
+    io.Socket? socket,
     io.SecurityContext? context,
-  }) async =>
-      null;
+  }) async {
+    if (ioSocket == null) {
+      throw const NoSocketAttached();
+    }
+
+    try {
+      subscription.pause();
+
+      ioSocket = await io.SecureSocket.secure(
+        socket ?? ioSocket!,
+        context: context,
+        onBadCertificate: (certificate) => continueEmittingOnBadCert,
+      );
+
+      subscription.resume();
+
+      return ioSocket;
+    } catch (error) {
+      throw SecureSocketException(error);
+    }
+  }
 }
