@@ -4,5 +4,4 @@
 library;
 
 export 'src/connecta.dart';
-
-// TODO: Export any libraries intended for clients of this package.
+export 'src/exception.dart';
