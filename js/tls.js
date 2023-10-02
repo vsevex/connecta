@@ -17,10 +17,6 @@ var server = tls.createServer(options, function (socket) {
             data.toString().replace(/(\n)/gm, ""));
     });
 
-    socket.on('data', function (chunk) {
-        console.log(`Data received from client: ${chunk.toString()}`)
-    });
-
     socket.on('end', function () {
         console.log('Closing connection with the client');
     });
