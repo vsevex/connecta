@@ -1,6 +1,21 @@
 part of 'connecta.dart';
 
+/// A utility class for configuring and managing connection parameters for the
+/// [Connecta].
+///
+/// ### Example:
+/// ```dart
+/// final toolkit = ConnectaToolkit(
+///   hostname: 'localhost',
+///   port: 443,
+///   startTLS: true,
+///   certificatePath: '/path/to/certificate.pem',
+///   keyPath: '/path/to/key.pem',
+/// );
+/// ```
 class ConnectaToolkit {
+  /// Creates a new instance of `ConnectaToolkit` with the specified
+  /// configuration options.
   ConnectaToolkit({
     required this.hostname,
     this.port = 8080,
@@ -23,13 +38,32 @@ class ConnectaToolkit {
     }
   }
 
+  /// The hostname to connect to.
   final String hostname;
+
+  /// The port to connect to (defaults to 8080).
   final int port;
+
+  /// The connection timeout in milliseconds (defaults to 3000).
   final int timeout;
+
+  /// A flag indicating whether to start `TLS` (Secure) connection (defaults to
+  /// false).
   final bool startTLS;
+
+  /// A flag indicating whether to continue emitting data on a bad `TLS`
+  /// certificate (defaults to true).
   final bool continueEmittingOnBadCert;
+
+  /// The path to the certificate file for `TLS` connection (defaults to an
+  /// empty string).
   final String certificatePath;
+
+  /// The path to the key file for `TLS` connection (defaults to an empty
+  /// string).
   final String keyPath;
+
+  /// An optional [io.SecurityContext] for `TLS` configuration.
   io.SecurityContext? context;
 
   @override

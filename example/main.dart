@@ -6,13 +6,21 @@ Future<void> main() async {
   final connecta = Connecta(
     ConnectaToolkit(
       hostname: 'localhost',
+      port: 443,
+      startTLS: true,
       certificatePath: 'public/cert.pem',
       keyPath: 'public/key.pem',
     ),
   );
 
-  await connecta.connect(onData: (value) => log(value.toString()));
-  await connecta.upgradeConnection();
+  try {
+    await connecta.connect(onData: (value) => log(value.toString()));
 
-  connecta.send('hert');
+    /// Upgrade the connection to secure if needed.
+    await connecta.upgradeConnection();
+
+    connecta.send('hert');
+  } on ConnectaException catch (error) {
+    log(error.message);
+  }
 }

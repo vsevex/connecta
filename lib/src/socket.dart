@@ -5,7 +5,7 @@ part of 'connecta.dart';
 /// ### Example:
 /// ```dart
 /// class ConcreteConnecta extends ConnectaSocket {
-///   /// ...implement socket
+///   // ...implement socket
 /// }
 ///
 /// final mySocket = ConcreteConnecta();
