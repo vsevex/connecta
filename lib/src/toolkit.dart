@@ -32,7 +32,7 @@ class ConnectaToolkit {
           certificatePath: certificatePath,
           keyPath: keyPath,
         );
-      } else {
+      } else if (startTLS) {
         throw const InvalidCertOrKeyException();
       }
     }
