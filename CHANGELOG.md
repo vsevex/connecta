@@ -1,3 +1,6 @@
-## 1.0.0
+# 1.0.0-beta1
 
-- Initial version.
+- Initial release, but not stable yet.
+- Support for TCP and TLS (Secure) socket connections.
+- `ConnectaToolkit` for configuration of connection parameters.
+- Ability to upgrade connection from TCP to TLS.
