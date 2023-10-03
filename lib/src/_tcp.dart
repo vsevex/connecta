@@ -1,6 +1,12 @@
 part of 'connecta.dart';
 
+/// A private implementation of the [ConnectaSocket] class for `TCP` type
+/// connection.
+///
+/// This class extends abstract [ConnectaSocket] and provides concrete
+/// implementation of dedicated methods.
 class _TCPConnecta extends ConnectaSocket {
+  /// Creates a `TCP` socket connection to the specified hostname and port.
   @override
   Future<io.Socket> createSocket({
     void Function(List<int> data)? onData,
@@ -24,6 +30,9 @@ class _TCPConnecta extends ConnectaSocket {
     }
   }
 
+  /// Handles the subscription events for the `TCP` socket, forwarding data to
+  /// `onData`, handling errors with `onError` and destroying the socket on
+  /// completion.
   void _handleSocket({
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
@@ -36,6 +45,13 @@ class _TCPConnecta extends ConnectaSocket {
     );
   }
 
+  /// Writes data to socket
+  ///
+  /// ### Example:
+  /// ```dart
+  /// final socket = _TCPConnecta();
+  /// socket.write('hert!'); /// sends "hert!" over the socket.
+  /// ```
   @override
   void write(dynamic data) {
     assert(data != null, 'data can not be null');
@@ -49,6 +65,9 @@ class _TCPConnecta extends ConnectaSocket {
     }
   }
 
+  /// Upgrades an existing `TCP` connection to a secure connection using TLS.
+  ///
+  /// Pauses the subscription during the upgrade process.
   @override
   Future<io.Socket?> upgradeConnection({
     required int timeout,
