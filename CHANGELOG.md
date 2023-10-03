@@ -1,4 +1,8 @@
-# 1.0.0-beta1
+# 1.0.0-beta2
+
+- Lil exception fix.
+
+## 1.0.0-beta1
 
 - Initial release, but not stable yet.
 - Support for TCP and TLS (Secure) socket connections.
