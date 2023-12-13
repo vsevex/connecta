@@ -8,7 +8,7 @@ Add the following to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  connecta: ^1.0.0-beta1
+  connecta: ^1.0.1
 ```
 
 Then run:
@@ -27,21 +27,19 @@ import 'package:connecta/connecta.dart';
 Future<void> main() async {
   final connecta = Connecta(
     ConnectaToolkit(
-      hostname: 'localhost',
+      hostname: 'example.org',
       port: 443,
-      startTLS: true,
-      certificatePath: 'public/cert.pem',
-      keyPath: 'public/key.pem',
+      connectionType: ConnectionType.tls,
     ),
   );
 
   try {
-    await connecta.connect(onData: (value) => log(value.toString()));
+    await connecta.connect(ConnectaListener(onData: (data) => log(String.fromCharCodes(data))));
 
     /// Upgrade the connection to secure if needed.
     await connecta.upgradeConnection();
 
-    connecta.send('hert');
+    connecta.send('hello');
   } on ConnectaException catch (error) {
     log(error.message);
   }

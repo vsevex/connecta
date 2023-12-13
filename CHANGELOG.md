@@ -1,4 +1,8 @@
-# 1.0.0-beta2
+# 1.0.0
+
+- Initial stable release.
+
+## 1.0.0-beta2
 
 - Lil exception fix.
 

@@ -31,7 +31,7 @@ class Connecta {
   ///
   /// ### Example:
   /// ```dart
-  /// final connecta = Connecta(ConnectaToolkit());
+  /// final connecta = Connecta(ConnectaToolkit(hostname: 'example.org'));
   /// await connecta.connect(ConnectaListener(onData: (data) => log(data)));
   /// ```
   Future<io.Socket> connect([ConnectaListener? listener]) async {
@@ -110,9 +110,7 @@ class Connecta {
   /// ConnectaToolkit myToolkit = ConnectaToolkit(
   ///   hostname: 'example.com',
   ///   port: 443,
-  ///   startTLS: true,
-  ///   certificatePath: '/path/to/certificate.pem',
-  ///   keyPath: '/path/to/key.pem',
+  ///   connectionType: ConnectionType.tls,
   /// );
   ///
   /// Connecta myConnecta = Connecta(myToolkit);
