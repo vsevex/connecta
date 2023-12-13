@@ -5,7 +5,7 @@ part of 'connecta.dart';
 /// ### Example:
 /// ```dart
 /// class ConcreteConnecta extends ConnectaSocket {
-///   /// ...implement socket
+///   // ...implement socket
 /// }
 ///
 /// final mySocket = ConcreteConnecta();
@@ -39,6 +39,8 @@ abstract class ConnectaSocket {
     io.SecurityContext? context,
   });
 
+  /// Creates a new connection task that gives cancel ability to the current
+  /// connection attempt.
   Future<io.ConnectionTask<io.Socket>> _createTask({
     ConnectaListener? listener,
     OnBadCertificateCallback? onBadCertificateCallback,
