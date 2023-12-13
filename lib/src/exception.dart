@@ -7,7 +7,16 @@ abstract class ConnectaException implements Exception {
 class TCPConnectionException extends ConnectaException {
   const TCPConnectionException(this.error)
       : super(
-          'Connecta exception thrown when establishing TCP connection: $error',
+          'Connecta exception is thrown while establishing a TCP connection: $error',
+        );
+
+  final dynamic error;
+}
+
+class TLSConnectionException extends ConnectaException {
+  const TLSConnectionException(this.error)
+      : super(
+          'Connecta exception is thrown while establishing a TLS connection: $error',
         );
 
   final dynamic error;
@@ -15,20 +24,22 @@ class TCPConnectionException extends ConnectaException {
 
 class DataTypeException extends ConnectaException {
   DataTypeException(this.type)
-      : super('Data to be written is not in valid type: $type');
+      : super('The data to be written is not in valid type: $type');
 
   final Type type;
 }
 
 class NoSocketAttached extends ConnectaException {
   const NoSocketAttached()
-      : super('To upgrade socket you must create Socket connection in advance');
+      : super(
+          'To upgrade the socket you must create a Socket connection in advance',
+        );
 }
 
 class NoSecureSocketException extends ConnectaException {
   NoSecureSocketException()
       : super(
-          'In order to send message to the socket, you need to upgrade socket first',
+          'In order to send a message to the socket, you need to upgrade the socket first',
         );
 }
 
@@ -39,12 +50,16 @@ class SecureSocketException extends ConnectaException {
   final dynamic error;
 }
 
-class BuildSocketContextException extends ConnectaException {
-  const BuildSocketContextException()
-      : super('An error occured while building certificate for Socket Context');
+class AlreadyTLSException extends ConnectaException {
+  const AlreadyTLSException()
+      : super(
+          'The connection you are trying to upgrade is already a TLS connection',
+        );
 }
 
-class InvalidCertOrKeyException extends ConnectaException {
-  const InvalidCertOrKeyException()
-      : super('Provided certificate or key file is invalid');
+class IsNotUpgradableException extends ConnectaException {
+  const IsNotUpgradableException()
+      : super(
+          'The connection type you have declared is not upgradable',
+        );
 }

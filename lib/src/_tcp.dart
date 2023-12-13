@@ -8,23 +8,57 @@ part of 'connecta.dart';
 class _TCPConnecta extends ConnectaSocket {
   /// Creates a `TCP` socket connection to the specified hostname and port.
   @override
-  Future<io.Socket> createSocket({
-    void Function(List<int> data)? onData,
-    Function(dynamic error, dynamic trace)? onError,
+  Future<io.Socket> _createSocket({
+    ConnectaListener? listener,
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    List<String>? supportedProtocols,
     io.SecurityContext? context,
   }) async {
     try {
-      ioSocket = await io.Socket.connect(
+      _ioSocket = await io.Socket.connect(
         _hostname,
         _port,
         timeout: Duration(milliseconds: timeout),
       );
 
-      _handleSocket(onData: onData, onError: onError);
+      if (listener != null) {
+        _handleSocket(
+          onData: listener.onData,
+          onError: listener.onError,
+          onDone: listener.onDone,
+        );
+      }
 
-      return ioSocket!;
+      return _ioSocket!;
+    } on Exception catch (error) {
+      throw TCPConnectionException(error);
+    }
+  }
+
+  @override
+  Future<io.ConnectionTask<io.Socket>> _createTask({
+    ConnectaListener? listener,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    io.SecurityContext? context,
+  }) async {
+    try {
+      final task = await io.Socket.startConnect(
+        _hostname,
+        _port,
+      );
+
+      _ioSocket = await task.socket;
+
+      if (listener != null) {
+        _handleSocket(
+          onData: listener.onData,
+          onError: listener.onError,
+          onDone: listener.onDone,
+        );
+      }
+
+      return task;
     } on Exception catch (error) {
       throw TCPConnectionException(error);
     }
@@ -36,11 +70,15 @@ class _TCPConnecta extends ConnectaSocket {
   void _handleSocket({
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
+    void Function()? onDone,
   }) {
-    subscription = ioSocket!.listen(
+    _subscription = _ioSocket!.listen(
       onData,
       onError: onError,
-      onDone: () => ioSocket!.destroy(),
+      onDone: () {
+        onDone?.call();
+        _ioSocket!.destroy();
+      },
       cancelOnError: true,
     );
   }
@@ -53,13 +91,13 @@ class _TCPConnecta extends ConnectaSocket {
   /// socket.write('hert!'); /// sends "hert!" over the socket.
   /// ```
   @override
-  void write(dynamic data) {
+  void _write(dynamic data) {
     assert(data != null, 'data can not be null');
 
     if (data is List<int>) {
-      ioSocket!.write(String.fromCharCodes(data));
+      _ioSocket!.write(String.fromCharCodes(data));
     } else if (data is String) {
-      ioSocket!.write(data);
+      _ioSocket!.write(data);
     } else {
       throw DataTypeException(data.runtimeType);
     }
@@ -69,28 +107,39 @@ class _TCPConnecta extends ConnectaSocket {
   ///
   /// Pauses the subscription during the upgrade process.
   @override
-  Future<io.Socket?> upgradeConnection({
+  Future<io.Socket?> _upgradeConnection({
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    ConnectaListener? listener,
+    List<String>? supportedProtocols,
     io.Socket? socket,
     io.SecurityContext? context,
   }) async {
-    if (ioSocket == null) {
+    if (_ioSocket == null) {
       throw const NoSocketAttached();
     }
 
     try {
-      subscription.pause();
+      _subscription.pause();
 
-      ioSocket = await io.SecureSocket.secure(
-        socket ?? ioSocket!,
+      _ioSocket = await io.SecureSocket.secure(
+        socket ?? _ioSocket!,
         context: context,
-        onBadCertificate: (certificate) => continueEmittingOnBadCert,
+        onBadCertificate: onBadCertificateCallback,
+        supportedProtocols: supportedProtocols,
       );
 
-      subscription.resume();
+      _subscription.resume();
 
-      return ioSocket;
+      if (listener != null) {
+        _handleSocket(
+          onData: listener.onData,
+          onError: listener.onError,
+          onDone: listener.onDone,
+        );
+      }
+
+      return _ioSocket;
     } catch (error) {
       throw SecureSocketException(error);
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:connecta/src/exception.dart';
@@ -8,63 +9,125 @@ part '_tcp.dart';
 part '_tls.dart';
 part 'socket.dart';
 
+typedef OnBadCertificateCallback = bool Function(io.X509Certificate);
+
 class Connecta {
-  Connecta(this.toolkit);
+  Connecta(this._toolkit);
 
-  final ConnectaToolkit toolkit;
-  late ConnectaSocket socket;
-  late bool isSecure;
+  final ConnectaToolkit _toolkit;
+  late ConnectaSocket _socket;
+  late bool _isSecure;
 
-  Future<io.Socket> connect({
-    void Function(List<int>)? onData,
-    dynamic Function(dynamic, dynamic)? onError,
-  }) async {
-    if (!toolkit.startTLS) {
-      socket = _TCPConnecta()
-        ..initialize(hostname: toolkit.hostname, port: toolkit.port);
-      final tcp = socket.createSocket(
-        onData: onData,
-        onError: onError,
-        timeout: toolkit.timeout,
-        continueEmittingOnBadCert: toolkit.continueEmittingOnBadCert,
+  Future<io.Socket> connect([ConnectaListener? listener]) async {
+    if (_toolkit.connectionType == ConnectionType.tcp ||
+        _toolkit.connectionType == ConnectionType.upgradableTcp) {
+      _socket = _TCPConnecta()
+        .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
+      final tcp = _socket._createSocket(
+        listener: listener,
+        timeout: _toolkit.timeout,
+        onBadCertificateCallback: _toolkit.onBadCertificateCallback,
       );
-      isSecure = false;
+      _isSecure = false;
 
       return tcp;
     } else {
-      socket = _TLSConnecta()
-        ..initialize(hostname: toolkit.hostname, port: toolkit.port);
-      final tls = socket.createSocket(
-        onData: onData,
-        onError: onError,
-        timeout: toolkit.timeout,
-        continueEmittingOnBadCert: toolkit.continueEmittingOnBadCert,
+      _socket = _TLSConnecta()
+        .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
+      final tls = _socket._createSocket(
+        listener: listener,
+        timeout: _toolkit.timeout,
+        onBadCertificateCallback: _toolkit.onBadCertificateCallback,
+        supportedProtocols: _toolkit.supportedProtocols,
+        context: _toolkit.context,
       );
-      isSecure = true;
+      _isSecure = true;
 
       return tls;
     }
   }
 
-  Future<io.Socket?> upgradeConnection() async {
-    if (toolkit.startTLS) {
-      throw const NoSocketAttached();
+  Future<io.ConnectionTask<io.Socket>> createTask([
+    ConnectaListener? listener,
+  ]) async {
+    if (_toolkit.connectionType == ConnectionType.tcp ||
+        _toolkit.connectionType == ConnectionType.upgradableTcp) {
+      _socket = _TCPConnecta()
+        .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
+      final tcp = _socket._createTask(
+        listener: listener,
+        onBadCertificateCallback: _toolkit.onBadCertificateCallback,
+      );
+      _isSecure = false;
+
+      return tcp;
+    } else {
+      _socket = _TLSConnecta()
+        .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
+      final tls = _socket._createTask(
+        listener: listener,
+        onBadCertificateCallback: _toolkit.onBadCertificateCallback,
+        context: _toolkit.context,
+      );
+      _isSecure = true;
+
+      return tls;
+    }
+  }
+
+  Future<io.Socket?> upgradeConnection({
+    io.Socket? upgradableSocket,
+    ConnectaListener? listener,
+  }) async {
+    if (_toolkit.connectionType == ConnectionType.tls) {
+      throw const AlreadyTLSException();
+    } else if (_toolkit.connectionType == ConnectionType.tcp) {
+      throw const IsNotUpgradableException();
     }
 
-    if (!isSecure) {
-      final securedSocket = await socket.upgradeConnection(
-        timeout: toolkit.timeout,
-        continueEmittingOnBadCert: toolkit.continueEmittingOnBadCert,
-        socket: socket.ioSocket,
-        context: toolkit.context,
+    if (!_isSecure) {
+      final securedSocket = await _socket._upgradeConnection(
+        timeout: _toolkit.timeout,
+        listener: listener,
+        onBadCertificateCallback: _toolkit.onBadCertificateCallback,
+        supportedProtocols: _toolkit.supportedProtocols,
+        socket: upgradableSocket,
+        context: _toolkit.context,
       );
 
-      isSecure = true;
+      _isSecure = true;
       return securedSocket;
     }
 
     return null;
   }
 
-  void send(dynamic data) => socket.write(data);
+  void send(dynamic data) => _socket._write(data);
+
+  void destroy() => _socket._destroy();
+
+  io.Socket get socket => _socket._ioSocket!;
+
+  bool get isConnectionSecure => _isSecure;
+}
+
+class ConnectaListener {
+  const ConnectaListener({this.onData, this.onError, this.onDone});
+
+  final void Function(List<int> data)? onData;
+  final Function(dynamic error, dynamic trace)? onError;
+  final void Function()? onDone;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is ConnectaListener &&
+        other.onData == onData &&
+        other.onError == onError &&
+        other.onDone == onDone;
+  }
+
+  @override
+  int get hashCode => onData.hashCode ^ onError.hashCode ^ onDone.hashCode;
 }

@@ -6,35 +6,65 @@ part of 'connecta.dart';
 /// This class extends abstract [ConnectaSocket] and provides concrete
 /// implementation of dedicated methods.
 class _TLSConnecta extends ConnectaSocket {
-  /// An optional [io.SecurityContext] for certificate-related configurations.
-  late io.SecurityContext? certificate;
-
   /// Creates a secure (TLS) socket connection to the specified hostname and
   /// port. If [context] is not provided, a default [io.SecurityContext] is
   /// used.
   @override
-  Future<io.Socket> createSocket({
-    void Function(List<int> data)? onData,
-    Function(dynamic error, dynamic trace)? onError,
+  Future<io.Socket> _createSocket({
+    ConnectaListener? listener,
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    List<String>? supportedProtocols,
     io.SecurityContext? context,
   }) async {
-    if (context == null) {
-      certificate = io.SecurityContext.defaultContext;
-    }
+    try {
+      _ioSocket = await io.SecureSocket.connect(
+        _hostname,
+        _port,
+        context: context,
+        timeout: Duration(milliseconds: timeout),
+        supportedProtocols: supportedProtocols,
+        onBadCertificate: onBadCertificateCallback,
+      );
 
-    ioSocket = await io.SecureSocket.connect(
+      if (listener != null) {
+        _handleSocket(
+          onData: listener.onData,
+          onError: listener.onError,
+          onDone: listener.onDone,
+        );
+      }
+
+      return _ioSocket!;
+    } on Exception catch (error) {
+      throw TLSConnectionException(error);
+    }
+  }
+
+  @override
+  Future<io.ConnectionTask<io.Socket>> _createTask({
+    ConnectaListener? listener,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    io.SecurityContext? context,
+  }) async {
+    final task = await io.SecureSocket.startConnect(
       _hostname,
       _port,
       context: context,
-      timeout: Duration(milliseconds: timeout),
-      onBadCertificate: (cert) => continueEmittingOnBadCert,
+      onBadCertificate: onBadCertificateCallback,
     );
 
-    _handleSocket(onData: onData, onError: onError);
+    if (listener != null) {
+      _handleSocket(
+        onData: listener.onData,
+        onError: listener.onError,
+        onDone: listener.onDone,
+      );
+    }
 
-    return ioSocket!;
+    _ioSocket = await task.socket;
+
+    return task;
   }
 
   /// Handles the subscription events for the TLS socket, forwarding data to
@@ -42,44 +72,34 @@ class _TLSConnecta extends ConnectaSocket {
   void _handleSocket({
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
+    void Function()? onDone,
   }) {
-    subscription = ioSocket!.listen(
+    _subscription = _ioSocket!.listen(
       onData,
       onError: onError,
-      onDone: () => ioSocket!.destroy(),
+      onDone: () {
+        onDone?.call();
+        _ioSocket!.destroy();
+      },
       cancelOnError: true,
     );
-  }
-
-  /// Static method to build a [io.SecurityContext] using the provided
-  /// certificate and key paths. Throws a [BuildSocketContextException] if
-  /// there is an error building the context.
-  static io.SecurityContext buildCertificate({
-    required String certificatePath,
-    required String keyPath,
-  }) {
-    try {
-      return io.SecurityContext(withTrustedRoots: true)
-        ..useCertificateChain(certificatePath)
-        ..usePrivateKey(keyPath);
-    } on Exception {
-      throw const BuildSocketContextException();
-    }
   }
 
   /// Writes data to the `TLS` socket. The data can be either [List<int>] or a
   /// [String]. Throws a [DataTypeException] if the data type is not supported.
   @override
-  void write(dynamic data /** List<int> || String */) {
+  void _write(dynamic data /** List<int> || String || Map<String, dynamic>*/) {
     assert(data != null, 'data can not be null');
-    if (ioSocket == null) {
+    if (_ioSocket == null) {
       throw NoSecureSocketException();
     }
 
     if (data is List<int>) {
-      ioSocket!.write(String.fromCharCodes(data));
+      _ioSocket!.write(String.fromCharCodes(data));
     } else if (data is String) {
-      ioSocket!.write(data);
+      _ioSocket!.write(data);
+    } else if (data is Map) {
+      _ioSocket!.write(utf8.encode(json.encode(data)));
     } else {
       throw DataTypeException(data.runtimeType);
     }
@@ -87,9 +107,11 @@ class _TLSConnecta extends ConnectaSocket {
 
   /// No need to upgrade `TLS` connection. So, return `null`.
   @override
-  Future<io.Socket?> upgradeConnection({
+  Future<io.Socket?> _upgradeConnection({
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    ConnectaListener? listener,
+    List<String>? supportedProtocols,
     io.Socket? socket,
     io.SecurityContext? context,
   }) async =>

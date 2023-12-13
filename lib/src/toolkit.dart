@@ -1,37 +1,35 @@
 part of 'connecta.dart';
 
+enum ConnectionType {
+  tcp,
+  upgradableTcp,
+  tls,
+}
+
 class ConnectaToolkit {
   ConnectaToolkit({
-    required this.hostname,
-    this.port = 8080,
+    required String hostname,
+    int port = 8080,
     this.timeout = 3000,
-    this.startTLS = false,
-    this.continueEmittingOnBadCert = true,
-    this.certificatePath = '',
-    this.keyPath = '',
+    this.isTask = false,
+    this.connectionType = ConnectionType.tcp,
+    this.supportedProtocols,
+    this.onBadCertificateCallback,
     this.context,
   }) : assert(hostname.isNotEmpty, 'Hostname can not be empty') {
-    if (context == null) {
-      if (certificatePath.isNotEmpty && keyPath.isNotEmpty) {
-        context = _TLSConnecta.buildCertificate(
-          certificatePath: certificatePath,
-          keyPath: keyPath,
-        );
-      } else {
-        throw const InvalidCertOrKeyException();
-      }
-    }
+    _hostname = hostname;
+    _port = port;
   }
 
-  final String hostname;
-  final int port;
+  late final String _hostname;
+  late final int _port;
   final int timeout;
-  final bool startTLS;
-  final bool continueEmittingOnBadCert;
-  final String certificatePath;
-  final String keyPath;
+  final bool isTask;
+  final ConnectionType connectionType;
+  final List<String>? supportedProtocols;
+  OnBadCertificateCallback? onBadCertificateCallback;
   io.SecurityContext? context;
 
   @override
-  String toString() => '''Connecta info: $hostname:$port''';
+  String toString() => '''Connecta: $_hostname:$_port''';
 }

@@ -13,7 +13,7 @@ part of 'connecta.dart';
 /// ```
 abstract class ConnectaSocket {
   /// A reference to the underlying [io.Socket] object.
-  late io.Socket? ioSocket;
+  late io.Socket? _ioSocket;
 
   /// The hostname to connect to.
   late final String _hostname;
@@ -22,39 +22,47 @@ abstract class ConnectaSocket {
   late final int _port;
 
   /// A stream subscription for managing socket events.
-  late StreamSubscription subscription;
+  late StreamSubscription _subscription;
 
   /// Initializes the socket with the specified [hostname] and [port].
-  void initialize({required String hostname, required int port}) {
+  void _initialize({required String hostname, required int port}) {
     _hostname = hostname;
     _port = port;
   }
 
   /// Creates a new socket connection with the provided parameters.
-  Future<io.Socket> createSocket({
-    void Function(List<int>)? onData,
-    Function(dynamic error, dynamic trace)? onError,
+  Future<io.Socket> _createSocket({
+    ConnectaListener? listener,
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    List<String>? supportedProtocols,
+    io.SecurityContext? context,
+  });
+
+  Future<io.ConnectionTask<io.Socket>> _createTask({
+    ConnectaListener? listener,
+    OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   });
 
   /// Upgrades an existing connection to a secure connection or returns `null`.
-  Future<io.Socket?> upgradeConnection({
+  Future<io.Socket?> _upgradeConnection({
     required int timeout,
-    required bool continueEmittingOnBadCert,
+    OnBadCertificateCallback? onBadCertificateCallback,
+    ConnectaListener? listener,
+    List<String>? supportedProtocols,
     io.Socket? socket,
     io.SecurityContext? context,
   });
 
   /// Writes data to the socket.
-  void write(dynamic data);
+  void _write(dynamic data);
 
   /// Destroys the socket connection and cancels the stream subscription.
-  void destroy() {
-    if (ioSocket != null) {
-      ioSocket!.destroy();
+  void _destroy() {
+    if (_ioSocket != null) {
+      _ioSocket!.destroy();
     }
-    subscription.cancel();
+    _subscription.cancel();
   }
 }
