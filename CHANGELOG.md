@@ -1,4 +1,8 @@
-# 1.0.0
+# 1.0.0+1
+
+- Fix TLS unassigned problem.
+
+## 1.0.0
 
 - Initial stable release.
 
