@@ -54,6 +54,8 @@ class _TLSConnecta extends ConnectaSocket {
       onBadCertificate: onBadCertificateCallback,
     );
 
+    _ioSocket = await task.socket;
+
     if (listener != null) {
       _handleSocket(
         onData: listener.onData,
