@@ -39,6 +39,7 @@ class _TCPConnecta extends ConnectaSocket {
   @override
   Future<io.ConnectionTask<io.Socket>> _createTask({
     ConnectaListener? listener,
+    required int timeout,
     OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   }) async {
@@ -46,7 +47,7 @@ class _TCPConnecta extends ConnectaSocket {
       final task = await io.Socket.startConnect(
         _hostname,
         _port,
-      );
+      ).timeout(Duration(milliseconds: timeout));
 
       _ioSocket = await task.socket;
 
@@ -59,6 +60,8 @@ class _TCPConnecta extends ConnectaSocket {
       }
 
       return task;
+    } on TimeoutException {
+      throw ConnectaTimeoutException();
     } on Exception catch (error) {
       throw TCPConnectionException(error);
     }

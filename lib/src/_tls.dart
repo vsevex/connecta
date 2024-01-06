@@ -44,29 +44,36 @@ class _TLSConnecta extends ConnectaSocket {
   @override
   Future<io.ConnectionTask<io.Socket>> _createTask({
     ConnectaListener? listener,
+    required int timeout,
     OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   }) async {
-    final task = await io.SecureSocket.startConnect(
-      _hostname,
-      _port,
-      context: context,
-      onBadCertificate: onBadCertificateCallback,
-    );
+    try {
+      final task = await io.SecureSocket.startConnect(
+        _hostname,
+        _port,
+        context: context,
+        onBadCertificate: onBadCertificateCallback,
+      ).timeout(Duration(milliseconds: timeout));
 
-    _ioSocket = await task.socket;
+      _ioSocket = await task.socket;
 
-    if (listener != null) {
-      _handleSocket(
-        onData: listener.onData,
-        onError: listener.onError,
-        onDone: listener.onDone,
-      );
+      if (listener != null) {
+        _handleSocket(
+          onData: listener.onData,
+          onError: listener.onError,
+          onDone: listener.onDone,
+        );
+      }
+
+      _ioSocket = await task.socket;
+
+      return task;
+    } on TimeoutException {
+      throw ConnectaTimeoutException();
+    } on Exception catch (error) {
+      throw TLSConnectionException(error);
     }
-
-    _ioSocket = await task.socket;
-
-    return task;
   }
 
   /// Handles the subscription events for the TLS socket, forwarding data to
