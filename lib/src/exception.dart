@@ -33,6 +33,13 @@ class TLSConnectionException extends ConnectaException {
   final dynamic error;
 }
 
+/// Thrown when there is a connection timeout when trying to establish
+/// connection.
+class ConnectaTimeoutException extends ConnectaException {
+  ConnectaTimeoutException()
+      : super('Timed out when trying to establish the connection');
+}
+
 /// Thrown when the data to be written is not in a valid type.
 class DataTypeException extends ConnectaException {
   DataTypeException(this.type)
