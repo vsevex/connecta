@@ -43,6 +43,7 @@ abstract class ConnectaSocket {
   /// connection attempt.
   Future<io.ConnectionTask<io.Socket>> _createTask({
     ConnectaListener? listener,
+    required int timeout,
     OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   });

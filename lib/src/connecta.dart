@@ -84,6 +84,7 @@ class Connecta {
         .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
       final tcp = _socket._createTask(
         listener: listener,
+        timeout: _toolkit.timeout,
         onBadCertificateCallback: _toolkit.onBadCertificateCallback,
       );
       _isSecure = false;
@@ -94,6 +95,7 @@ class Connecta {
         .._initialize(hostname: _toolkit._hostname, port: _toolkit._port);
       final tls = _socket._createTask(
         listener: listener,
+        timeout: _toolkit.timeout,
         onBadCertificateCallback: _toolkit.onBadCertificateCallback,
         context: _toolkit.context,
       );
