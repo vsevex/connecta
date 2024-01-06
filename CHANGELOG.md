@@ -1,4 +1,8 @@
-# 1.0.0+1
+# 1.0.1
+
+- Add timeout to creating task connection in both TCP and TLS connection types.
+
+## 1.0.0+1
 
 - Fix TLS unassigned problem.
 
