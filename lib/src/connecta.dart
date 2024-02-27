@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:connecta/src/exception.dart';
@@ -96,6 +95,7 @@ class Connecta {
       final tls = _socket._createTask(
         listener: listener,
         timeout: _toolkit.timeout,
+        supportedProtocols: _toolkit.supportedProtocols,
         onBadCertificateCallback: _toolkit.onBadCertificateCallback,
         context: _toolkit.context,
       );
@@ -180,7 +180,12 @@ class Connecta {
 
 /// Listener methods keeper for [Connecta].
 class ConnectaListener {
-  const ConnectaListener({this.onData, this.onError, this.onDone});
+  const ConnectaListener({
+    this.onData,
+    this.onError,
+    this.onDone,
+    this.combineWhile,
+  });
 
   final void Function(List<int> data)? onData;
 
@@ -190,6 +195,15 @@ class ConnectaListener {
   final Function(dynamic error, dynamic trace)? onError;
   final void Function()? onDone;
 
+  /// Helper method to check whether continue to combine when there is a data
+  /// from socket or not.
+  ///
+  /// This method can be provided by the user, if not provided TLS socket will
+  /// check if the upcoming data length is more than 1024 bytes or not. If
+  /// check returns true, then it waits until the next data stream and combines
+  /// previous and current data.
+  final bool Function(List<int> current)? combineWhile;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -197,9 +211,67 @@ class ConnectaListener {
     return other is ConnectaListener &&
         other.onData == onData &&
         other.onError == onError &&
-        other.onDone == onDone;
+        other.onDone == onDone &&
+        other.combineWhile == combineWhile;
   }
 
   @override
-  int get hashCode => onData.hashCode ^ onError.hashCode ^ onDone.hashCode;
+  int get hashCode =>
+      onData.hashCode ^
+      onError.hashCode ^
+      onDone.hashCode ^
+      combineWhile.hashCode;
+}
+
+/// This was created since the native [reduce] says:
+/// > When this stream is done, the returned future is completed with the value
+/// at that time.
+///
+/// The problem is that socket connections does not emits the [done] event after
+/// each message but after the socket disconnection.
+extension ReduceWhile<T> on Stream<T> {
+  /// An extension method on the Stream class that allows you to reduce a stream
+  /// of elements while applying a condition.
+  ///
+  /// [combine] is a required function that takes two elements of type [T] and
+  /// returns a single element of type [T]. This function is used to combine the
+  /// previous element with the current element.
+  ///
+  /// [combineWhile] is a required function that takes an element of type [T]
+  /// and returns a [bool] value. This function is used to determine whether to
+  /// continue reducing the stream or not.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// final numbers = Stream.fromIterable([1, 2, 3, 4]);
+  ///
+  /// _subscription = numbers.reduceWhile(
+  ///   combine: (previous, element) => previous + element,
+  ///   (element) => element <= 3,
+  /// );
+  /// ```
+  ///
+  /// Combines the elements of the `numbers` stream as long as the element is
+  /// less than or equal to 3. You can listen to the stream afterwards, 'cause
+  /// [reduceWhile] returns [Stream] after combining elements regarding to
+  /// [combine] method.
+  Stream<T> reduceWhile({
+    required T Function(T previous, T element) combine,
+    required bool Function(T current, {T? previous}) combineWhile,
+  }) async* {
+    T? previous;
+
+    await for (final element in this) {
+      if (previous == null) {
+        previous = element;
+      } else {
+        previous = combine(previous, element);
+      }
+
+      if (previous != null && !combineWhile(element, previous: previous)) {
+        yield previous;
+        previous = null;
+      }
+    }
+  }
 }
