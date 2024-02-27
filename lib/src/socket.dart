@@ -32,30 +32,31 @@ abstract class ConnectaSocket {
 
   /// Creates a new socket connection with the provided parameters.
   Future<io.Socket> _createSocket({
-    ConnectaListener? listener,
     required int timeout,
-    OnBadCertificateCallback? onBadCertificateCallback,
-    List<String>? supportedProtocols,
+    ConnectaListener? listener,
     io.SecurityContext? context,
+    List<String>? supportedProtocols,
+    OnBadCertificateCallback? onBadCertificateCallback,
   });
 
   /// Creates a new connection task that gives cancel ability to the current
   /// connection attempt.
   Future<io.ConnectionTask<io.Socket>> _createTask({
-    ConnectaListener? listener,
     required int timeout,
-    OnBadCertificateCallback? onBadCertificateCallback,
+    ConnectaListener? listener,
     io.SecurityContext? context,
+    List<String>? supportedProtocols,
+    OnBadCertificateCallback? onBadCertificateCallback,
   });
 
   /// Upgrades an existing connection to a secure connection or returns `null`.
   Future<io.Socket?> _upgradeConnection({
     required int timeout,
-    OnBadCertificateCallback? onBadCertificateCallback,
-    ConnectaListener? listener,
-    List<String>? supportedProtocols,
     io.Socket? socket,
     io.SecurityContext? context,
+    ConnectaListener? listener,
+    List<String>? supportedProtocols,
+    OnBadCertificateCallback? onBadCertificateCallback,
   });
 
   /// Writes data to the socket.

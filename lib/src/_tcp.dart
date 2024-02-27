@@ -38,8 +38,9 @@ class _TCPConnecta extends ConnectaSocket {
 
   @override
   Future<io.ConnectionTask<io.Socket>> _createTask({
-    ConnectaListener? listener,
     required int timeout,
+    ConnectaListener? listener,
+    List<String>? supportedProtocols = const <String>[],
     OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   }) async {
@@ -74,17 +75,16 @@ class _TCPConnecta extends ConnectaSocket {
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
     void Function()? onDone,
-  }) {
-    _subscription = _ioSocket!.listen(
-      onData,
-      onError: onError,
-      onDone: () {
-        onDone?.call();
-        _ioSocket!.destroy();
-      },
-      cancelOnError: true,
-    );
-  }
+  }) =>
+      _subscription = _ioSocket!.listen(
+        onData,
+        onError: onError,
+        onDone: () {
+          onDone?.call();
+          _ioSocket!.destroy();
+        },
+        cancelOnError: false,
+      );
 
   /// Writes data to socket
   ///
@@ -97,10 +97,10 @@ class _TCPConnecta extends ConnectaSocket {
   void _write(dynamic data) {
     assert(data != null, 'data can not be null');
 
-    if (data is List<int>) {
-      _ioSocket!.write(String.fromCharCodes(data));
-    } else if (data is String) {
-      _ioSocket!.write(data);
+    if (data is String) {
+      _ioSocket!.add(data.codeUnits);
+    } else if (data is List<int>) {
+      _ioSocket!.add(data);
     } else {
       throw DataTypeException(data.runtimeType);
     }
