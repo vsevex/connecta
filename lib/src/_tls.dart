@@ -45,6 +45,7 @@ class _TLSConnecta extends ConnectaSocket {
   Future<io.ConnectionTask<io.Socket>> _createTask({
     ConnectaListener? listener,
     required int timeout,
+    List<String>? supportedProtocols,
     OnBadCertificateCallback? onBadCertificateCallback,
     io.SecurityContext? context,
   }) async {
@@ -54,6 +55,7 @@ class _TLSConnecta extends ConnectaSocket {
         _port,
         context: context,
         onBadCertificate: onBadCertificateCallback,
+        supportedProtocols: supportedProtocols,
       ).timeout(Duration(milliseconds: timeout));
 
       _ioSocket = await task.socket;
@@ -63,10 +65,9 @@ class _TLSConnecta extends ConnectaSocket {
           onData: listener.onData,
           onError: listener.onError,
           onDone: listener.onDone,
+          combineWhile: listener.combineWhile,
         );
       }
-
-      _ioSocket = await task.socket;
 
       return task;
     } on TimeoutException {
@@ -78,37 +79,55 @@ class _TLSConnecta extends ConnectaSocket {
 
   /// Handles the subscription events for the TLS socket, forwarding data to
   /// `onData`, handling errors with `onError`.
-  void _handleSocket({
+  Future<void> _handleSocket({
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
     void Function()? onDone,
-  }) {
-    _subscription = _ioSocket!.listen(
-      onData,
-      onError: onError,
-      onDone: () {
-        onDone?.call();
-        _ioSocket!.destroy();
-      },
-      cancelOnError: true,
-    );
-  }
+    bool Function(List<int> current)? combineWhile,
+  }) async =>
+      _subscription = _ioSocket!
+          .asBroadcastStream()
+          .cast<List<int>>()
+          .reduceWhile(
+            combine: (previous, element) => previous + element,
+            combineWhile: (current, {previous}) {
+              combineWhile ??= (current) => true;
+              if (current.length > 1024 && !combineWhile!.call(current)) {
+                return true;
+              } else if (current.length < 1024 &&
+                  !combineWhile!.call(current)) {
+                if (current == previous) {
+                  return false;
+                }
+                return true;
+              }
+
+              return false;
+            },
+          )
+          .listen(
+        onData,
+        onError: onError,
+        onDone: () {
+          onDone?.call();
+          _ioSocket!.destroy();
+        },
+        cancelOnError: true,
+      );
 
   /// Writes data to the `TLS` socket. The data can be either [List<int>] or a
   /// [String]. Throws a [DataTypeException] if the data type is not supported.
   @override
-  void _write(dynamic data /** List<int> || String || Map<String, dynamic>*/) {
+  void _write(dynamic data /** List<int> || String */) {
     assert(data != null, 'data can not be null');
     if (_ioSocket == null) {
       throw NoSecureSocketException();
     }
 
-    if (data is List<int>) {
-      _ioSocket!.write(String.fromCharCodes(data));
-    } else if (data is String) {
-      _ioSocket!.write(data);
-    } else if (data is Map) {
-      _ioSocket!.write(utf8.encode(json.encode(data)));
+    if (data is String) {
+      _ioSocket!.add(data.codeUnits);
+    } else if (data is List<int>) {
+      _ioSocket!.add(data);
     } else {
       throw DataTypeException(data.runtimeType);
     }
