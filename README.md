@@ -8,7 +8,7 @@ Add the following to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  connecta: ^1.0.1
+  connecta: ^1.1.0
 ```
 
 Then run:
