@@ -75,7 +75,40 @@ class _TCPConnecta extends ConnectaSocket {
     void Function(List<int> data)? onData,
     Function(dynamic error, dynamic trace)? onError,
     void Function()? onDone,
-  }) =>
+    bool Function(List<int> current)? combineWhile,
+    bool combine = false,
+  }) {
+    if (combine) {
+      _subscription = _ioSocket!
+          .asBroadcastStream()
+          .cast<List<int>>()
+          .reduceWhile(
+            combine: (previous, element) => previous + element,
+            combineWhile: (current, {previous}) {
+              combineWhile ??= (current) => true;
+              if (current.length > 1024 && !combineWhile!.call(current)) {
+                return true;
+              } else if (current.length < 1024 &&
+                  !combineWhile!.call(current)) {
+                if (current == previous) {
+                  return false;
+                }
+                return true;
+              }
+
+              return false;
+            },
+          )
+          .listen(
+        onData,
+        onError: onError,
+        onDone: () {
+          onDone?.call();
+          _ioSocket!.destroy();
+        },
+        cancelOnError: true,
+      );
+    } else {
       _subscription = _ioSocket!.listen(
         onData,
         onError: onError,
@@ -85,6 +118,8 @@ class _TCPConnecta extends ConnectaSocket {
         },
         cancelOnError: false,
       );
+    }
+  }
 
   /// Writes data to socket
   ///
@@ -139,6 +174,8 @@ class _TCPConnecta extends ConnectaSocket {
           onData: listener.onData,
           onError: listener.onError,
           onDone: listener.onDone,
+          combine: true,
+          combineWhile: listener.combineWhile,
         );
       }
 
