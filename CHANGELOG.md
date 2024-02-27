@@ -1,4 +1,8 @@
-# 1.1.0
+# 1.2.0
+
+- Added partial data listening functionality to the upgradable connections (TCP to TLS).
+
+## 1.1.0
 
 - Enchanced data listener functionality to handle data larger than 1024 bytes. This is a common Dart behavior where data is received sequentially (maybe only in SecureSocket connections), and this improvement ensures proper parsing even for large data chunks. The `onData` method now handled partial data and waits for the complete data before processing.
 - Added functionality to check for data ending (EOF), which can be declared by the user.
